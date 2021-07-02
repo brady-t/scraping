@@ -1,10 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import mysql.connector
-import database
 import re
 
-entireList = []
 URL = "https://www.indeed.com/cmp/Systems-Planning-and-Analysis,-Inc.-(spa)/reviews?fcountry=ALL&start=0"
 
 while True:
@@ -36,19 +34,13 @@ while True:
     mycursor = db.cursor()
 
     # find review-id
-    # WIP - need review-id to update proper row with Helpful/Unhelpful votes
     ids = soup.find_all("div", attrs={"data-tn-entitytype" : "reviewId"}, class_="css-snxk27-Flex e37uo190")
     
     idList = []
       
     for id in ids:
-       
-       # query = "INSERT INTO IndeedReviews (ID) values (%s)"
-       # value = (str(id['data-tn-entityid']))
         
         idList.append(id['data-tn-entityid'])
-        entireList.append(id['data-tn-entityid'])
-
          
     # find info of reviews 
 
@@ -65,12 +57,10 @@ while True:
         startIndexStatusParenthesis = status.span()[0]
         endIndexStatusParenthesis = status.span()[1]
         employeeStatus = (text[startIndexStatusParenthesis:endIndexStatusParenthesis]).lstrip("(").rstrip(")")
-        # print(employeeStatus)
 
         # title
         indexParenthesis = text.find("(")
         title = text[:startIndexStatusParenthesis]
-        # print(title)
         
         # location
         listDashIndex = []
@@ -93,39 +83,10 @@ while True:
         print("Successfully saved info, ratings to database")
 
 
-
-
-
-
-
-    # helpful / unhelpful votes
-    # votes = soup.find_all("div",class_ = "css-s0m1dl-Box eu4oa1w0")
-
-    # # use parents to find general review block of html and then go deeper to find the 
-    # # change ID to reviewID - ex:  data-tn-entityid="1eq62iglgu35m800" 
-    # # data-tn-entityid is unique to each review 
-    # for i in votes:
-    #     print(i.text)
-    #     # for j in i.parents:
-    #     #     print(j)
-    #     pattern = re.compile(r'\d')
-    #     #pattern.search(i.text).group())
-
-    # test = soup.select('div[data-tn-entityid]')
-    # print("test len = ", len(test))
-
     # scrape next page of reviews if it exists
     link = soup.find("a",attrs={"data-tn-element" : "next-page", "data-tn-link" : "true"})
     if link == None or len(link) == 0:
         break
     else:
         URL = "https://www.indeed.com" + (link.get('href'))
-
-# WIP - get rid of featured review because it's duplicated on each page 
-# dup = []
-# for x in entireList:
-#     if entireList.count(x) > 1:
-#         dup.append(x)
-# print(dup)
-
 

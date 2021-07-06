@@ -57,70 +57,76 @@ def scrape(URL):
     # set up MySQL     
     
     db = setUpDB("localhost","root","root","testdatabase")
+    
+    if db.is_connected():
 
-    while True:
-
-        httpObject = requests.get(URL)
-            
-        # error checking
-
-        if httpObject.status_code != 200:
-            print("Failed to load, status code: ", httpObject.status_code)
-        elif httpObject.status_code == 200:
-            print("Successfully loaded site")
-
-        soup = BeautifulSoup(httpObject.content, 'html.parser')
-
-        # finding all ratings
+        print("Connected to MySQL", db.get_server_info())
         
-        ratings = soup.find_all("button",class_= "css-1hmmasr-Text e1wnkr790")
+        while True:
 
-        # find review-id
+            httpObject = requests.get(URL)
+                
+            # error checking
 
-        ids = soup.find_all("div", attrs={"data-tn-entitytype" : "reviewId"}, class_="css-snxk27-Flex e37uo190")
-        idList = []
-        for id in ids:
-            idList.append(id['data-tn-entityid'])
+            if httpObject.status_code != 200:
+                print("Failed to load, status code: ", httpObject.status_code)
+            elif httpObject.status_code == 200:
+                print("Successfully loaded site")
+
+            soup = BeautifulSoup(httpObject.content, 'html.parser')
+
+            # finding all ratings
             
-        # find info of reviews 
+            ratings = soup.find_all("button",class_= "css-1hmmasr-Text e1wnkr790")
 
-        info = soup.find_all("span",class_= "css-1i9d0vw-Text e1wnkr790", attrs={"itemprop" : "author"})
-        indexList = 0
+            # find review-id
 
-        for myInfo, myRating in zip(info, ratings):
+            ids = soup.find_all("div", attrs={"data-tn-entitytype" : "reviewId"}, class_="css-snxk27-Flex e37uo190")
+            idList = []
+            for id in ids:
+                idList.append(id['data-tn-entityid'])
+                
+            # find info of reviews 
 
-            text = myInfo.text
+            info = soup.find_all("span",class_= "css-1i9d0vw-Text e1wnkr790", attrs={"itemprop" : "author"})
+            indexList = 0
 
-            # status
+            for myInfo, myRating in zip(info, ratings):
 
-            employeeStatus = findEmployeeStatus(text)
+                text = myInfo.text
 
-            # title
+                # status
 
-            title = findTitle(text)
+                employeeStatus = findEmployeeStatus(text)
+
+                # title
+
+                title = findTitle(text)
+                
+                # location
+
+                location = findLocation(text)
+
+                # date of publication
+
+                date = findDate(text)
+
+                # save to DB
+
+                query = "INSERT INTO IndeedReviews (ID, Title, Status, Rating, Location, Date) values (%s,%s,%s,%s,%s,%s)"
+                values = (idList[indexList] ,title, employeeStatus, myRating.text, location, date)
+                indexList += 1
+                saveToDB(db,query,values)
             
-            # location
+            # scrape next page of reviews if it exists
 
-            location = findLocation(text)
-
-            # date of publication
-
-            date = findDate(text)
-
-            # save to DB
-
-            query = "INSERT INTO IndeedReviews (ID, Title, Status, Rating, Location, Date) values (%s,%s,%s,%s,%s,%s)"
-            values = (idList[indexList] ,title, employeeStatus, myRating.text, location, date)
-            indexList += 1
-            saveToDB(db,query,values)
-           
-        # scrape next page of reviews if it exists
-
-        link = soup.find("a",attrs={"data-tn-element" : "next-page", "data-tn-link" : "true"})
-        if link == None or len(link) == 0:
-            break
+            link = soup.find("a",attrs={"data-tn-element" : "next-page", "data-tn-link" : "true"})
+            if link == None or len(link) == 0:
+                break
+            else:
+                URL = "https://www.indeed.com" + (link.get('href'))
         else:
-            URL = "https://www.indeed.com" + (link.get('href'))
+            print("Failed to connect to DB")
 
 if __name__ == "__main__":
     scrape("https://www.indeed.com/cmp/Systems-Planning-and-Analysis,-Inc.-(spa)/reviews?fcountry=ALL&start=0")

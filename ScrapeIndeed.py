@@ -1,7 +1,8 @@
 #!/usr/bin/python
-import time
+from time import time
 import re
 import sys
+import databaseconfig as cfg
 
 try:
     import requests
@@ -55,7 +56,7 @@ def findDate(text):
 def scrape(URL):
     # set up MySQL     
     
-    db = setUpDB("localhost","root","root","testdatabase")
+    db = setUpDB(cfg.mysql["host"],cfg.mysql["user"],cfg.mysql["passwd"],cfg.mysql["database"])
     
 
     if db.is_connected():
@@ -63,7 +64,7 @@ def scrape(URL):
         print("Connected to MySQL", db.get_server_info())
         
         print("Scraping . . . ")
-        begin_time = time.time()
+        begin_time = time()
 
         while True:
 
@@ -123,7 +124,7 @@ def scrape(URL):
 
             link = soup.find("a",attrs={"data-tn-element" : "next-page", "data-tn-link" : "true"})
             if link == None or len(link) == 0:
-                end_time = time.time()
+                end_time = time()
                 print("Elapsed time: ", end_time - begin_time, "seconds")
                 break
             else:

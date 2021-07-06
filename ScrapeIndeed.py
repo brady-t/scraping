@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import time
 import re
 import sys
 
@@ -23,7 +23,6 @@ def saveToDB(database, query,values):
     mycursor = database.cursor()
     mycursor.execute(query,values)
     database.commit()
-    print("Successfully saved info, ratings to database")
 
 def findEmployeeStatus(text):
     pattern1 = re.compile(r'\(((Current Employee)|(Former Employee))\)')
@@ -58,10 +57,14 @@ def scrape(URL):
     
     db = setUpDB("localhost","root","root","testdatabase")
     
+
     if db.is_connected():
 
         print("Connected to MySQL", db.get_server_info())
         
+        print("Scraping . . . ")
+        begin_time = time.time()
+
         while True:
 
             httpObject = requests.get(URL)
@@ -70,8 +73,6 @@ def scrape(URL):
 
             if httpObject.status_code != 200:
                 print("Failed to load, status code: ", httpObject.status_code)
-            elif httpObject.status_code == 200:
-                print("Successfully loaded site")
 
             soup = BeautifulSoup(httpObject.content, 'html.parser')
 
@@ -122,6 +123,8 @@ def scrape(URL):
 
             link = soup.find("a",attrs={"data-tn-element" : "next-page", "data-tn-link" : "true"})
             if link == None or len(link) == 0:
+                end_time = time.time()
+                print("Elapsed time: ", end_time - begin_time, "seconds")
                 break
             else:
                 URL = "https://www.indeed.com" + (link.get('href'))

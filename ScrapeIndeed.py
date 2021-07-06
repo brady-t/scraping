@@ -1,6 +1,16 @@
+#!/usr/bin/python
+
 import re
 import sys
 
+try:
+    import requests
+    from bs4 import BeautifulSoup
+    import mysql.connector
+except ImportError as error:
+    print("Missing module(s): request, bs4, or mysql.connector")
+    sys.exit(1)
+    
 def setUpDB(myHost,myUser,myPassword,myDB):
     return mysql.connector.connect(
                 host=myHost, 
@@ -113,12 +123,8 @@ def scrape(URL):
             URL = "https://www.indeed.com" + (link.get('href'))
 
 if __name__ == "__main__":
+    scrape("https://www.indeed.com/cmp/Systems-Planning-and-Analysis,-Inc.-(spa)/reviews?fcountry=ALL&start=0")
     
-    try:
-        import requests
-        from bs4 import BeautifulSoup
-        import mysql.connector
-        scrape("https://www.indeed.com/cmp/Systems-Planning-and-Analysis,-Inc.-(spa)/reviews?fcountry=ALL&start=0")
-    except ImportError as error:
-        print("Missing module(s): request, bs4, or mysql.connector")
-        sys.exit(1)
+else:
+    print("ScrapIndeed.py imported")
+    

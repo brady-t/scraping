@@ -26,16 +26,16 @@ def saveToDB(database, query,values):
     database.commit()
 
 def findEmployeeStatus(text):
-    pattern1 = re.compile(r'\(((Current Employee)|(Former Employee))\)')
-    status = (pattern1.search(text))
+    statusPattern = re.compile(r'\(((Current Employee)|(Former Employee))\)')
+    status = (statusPattern.search(text))
     startIndexStatusParenthesis = status.span()[0]
     endIndexStatusParenthesis = status.span()[1]
     return (text[startIndexStatusParenthesis:endIndexStatusParenthesis]).lstrip("(").rstrip(")")
 
 def findTitle(text):
     indexParenthesis = text.find("(")
-    pattern1 = re.compile(r'\(((Current Employee)|(Former Employee))\)')
-    status = (pattern1.search(text))
+    titlePattern = re.compile(r'\(((Current Employee)|(Former Employee))\)')
+    status = (titlePattern.search(text))
     startIndexStatusParenthesis = status.span()[0]
     return text[:startIndexStatusParenthesis]
 
@@ -53,74 +53,41 @@ def findDate(text):
         listDashIndex.append(i.span()[1])   
     return (text[listDashIndex[1]:]).strip()
     
-def scrape(URL):
-    # set up MySQL     
-    
+def scrape(URL):   
     db = setUpDB(cfg.mysql["host"],cfg.mysql["user"],cfg.mysql["passwd"],cfg.mysql["database"])
-    
-
     if db.is_connected():
-
         print("Connected to MySQL", db.get_server_info())
-        
         print("Scraping . . . ")
         begin_time = time()
-
+        
         while True:
-
             httpObject = requests.get(URL)
-                
-            # error checking
-
             if httpObject.status_code != 200:
                 print("Failed to load, status code: ", httpObject.status_code)
 
             soup = BeautifulSoup(httpObject.content, 'html.parser')
-
-            # finding all ratings
-            
             ratings = soup.find_all("button",class_= "css-1hmmasr-Text e1wnkr790")
-
-            # find review-id
-
+            info = soup.find_all("span",class_= "css-1i9d0vw-Text e1wnkr790", attrs={"itemprop" : "author"})
             ids = soup.find_all("div", attrs={"data-tn-entitytype" : "reviewId"}, class_="css-snxk27-Flex e37uo190")
+            
             idList = []
             for id in ids:
                 idList.append(id['data-tn-entityid'])
-                
-            # find info of reviews 
 
-            info = soup.find_all("span",class_= "css-1i9d0vw-Text e1wnkr790", attrs={"itemprop" : "author"})
             indexList = 0
-
             for myInfo, myRating in zip(info, ratings):
-
                 text = myInfo.text
-
-                # status
-
                 employeeStatus = findEmployeeStatus(text)
-
-                # title
-
                 title = findTitle(text)
-                
-                # location
-
                 location = findLocation(text)
-
-                # date of publication
-
                 date = findDate(text)
-
-                # save to DB
 
                 query = "INSERT INTO IndeedReviews (ID, Title, Status, Rating, Location, Date) values (%s,%s,%s,%s,%s,%s)"
                 values = (idList[indexList] ,title, employeeStatus, myRating.text, location, date)
                 indexList += 1
                 saveToDB(db,query,values)
             
-            # scrape next page of reviews if it exists
+            # Scrape next page of reviews if it exists
 
             link = soup.find("a",attrs={"data-tn-element" : "next-page", "data-tn-link" : "true"})
             if link == None or len(link) == 0:
